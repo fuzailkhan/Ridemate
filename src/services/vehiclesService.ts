@@ -93,8 +93,7 @@ export function subscribeToVehicles(ownerId: string, callback: (vehicles: Vehicl
 
   const vehiclesQuery = query(
     collection(db, 'vehicles'),
-    where('ownerId', '==', ownerId),
-    orderBy('createdAt', 'asc')
+    where('ownerId', '==', ownerId)
   );
   const unsubscribeVehicles = onSnapshot(
     vehiclesQuery,
