@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // --- profile-photos/{userId}.jpg ---------------------------------
+    // Path itself encodes the owner, so authorization is a direct path
+    // match — no Firestore lookup needed. Read is open to any signed-in
+    // user (profile photos are meant to be visible once rider-facing
+    // features like Rides exist); write is owner-only.
+    match /profile-photos/{userId}.jpg {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- vehicle-photos/{ownerId}/{vehicleId}.jpg --------------------
+    // ownerId is encoded in the path for the same reason — the service
+    // layer (vehiclesService.ts) writes to this exact path shape.
+    match /vehicle-photos/{ownerId}/{vehicleId}.jpg {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == ownerId;
+    }
+
+    // Default-deny everything else, same reasoning as firestore.rules.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

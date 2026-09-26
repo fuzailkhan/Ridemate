@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- users/{userId} ---------------------------------------------
+    // Task 3 scope: strictly owner-only. Nothing in the app yet needs one
+    // rider to read another rider's profile (that lands with Rides /
+    // rideMembers, at which point a deliberate public-safe field split —
+    // matching the pattern already used below for a future locations/
+    // messages implementation — is the right way to open that up, not a
+    // blanket "any signed-in user can read" rule.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // --- vehicles/{vehicleId} ----------------------------------------
+    // Task 3 scope: strictly owner-only, enforced via the ownerId field
+    // on the document itself. This is what makes vehicle registration
+    // numbers NOT globally readable, per the corrected security model —
+    // previously drafted as "any signed-in user can read," which was
+    // wrong and has been replaced here.
+    match /vehicles/{vehicleId} {
+      allow read, update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Everything else (rides, rideMembers, locations, messages,
+    // notifications, emergencyContacts, rideStops) does not exist in the
+    // app yet as of Task 3 — default-deny rather than publishing rules
+    // for a data model that hasn't been implemented or security-reviewed
+    // yet. These get their own rules in the task that actually builds
+    // them, matching the security model in the architecture doc.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
